@@ -17,7 +17,7 @@ TOKEN = getenv("BOT_TOKEN")
 
 
 async def main() -> None:
-    bot = Bot(TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.MARKDOWN_V2))
+    bot = Bot(TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
 
     dp.include_routers(base_router, url_router)

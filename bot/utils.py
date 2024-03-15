@@ -2,6 +2,7 @@ from typing import Any
 
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InputMediaPhoto, Message, URLInputFile
+from aiogram.utils.markdown import hlink
 
 
 def split_list(arr: list[Any], chunk_size: int):
@@ -18,7 +19,7 @@ async def handle_video(message: Message, video_url: str):
         # video file is bigger than 20 MB
         await message.reply(
             "Це відео завелике тому Телеграм не може його завантажити. "
-            f"Ось пряме посилання на це відео: [CLICK ME]({video_url})"
+            f"Ось пряме посилання на це відео: {hlink('CLICK ME', video_url)}"
         )
 
 
