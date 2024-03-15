@@ -1,6 +1,6 @@
 # TikTok Telegram Bot
 
-This bot allows users to download video or slide show from TikTok directly through Telegram. Currently all bot messages in Ukranian.
+This bot allows users to download video or slide show from TikTok directly through Telegram. Currently all bot messages are in Ukranian.
 
 ## Setup
 
