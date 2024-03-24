@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from aiogram import Router
+from aiogram import F, Router
 from aiogram.filters import CommandStart
 from aiogram.types import ErrorEvent, Message
 
@@ -24,7 +24,7 @@ async def command_start_handler(message: Message):
     )
 
 
-@url_router.message()
+@url_router.message(F.text)
 async def url_handler(message: Message):
     url: str | None = await get_redirect_url(message.text)
 
@@ -42,25 +42,15 @@ async def url_handler(message: Message):
         )
 
     data = await get_data(aweme_id)
-    if aweme_id != int(data["aweme_id"]):
-        logging.warning(
-            f"Got unexpected Aweme ID.\nAWEME_ID: [{aweme_id}]\nURL: [{message.text}]"
-        )
-        return await message.reply(
-            "Відео з таким ідентифікатором не знайдено. Перевірте посилання та спробуйте ще раз!"
-        )
 
-    if "image_post_info" not in data:
-        video_url: str = data["video"]["bit_rate"][0]["play_addr"]["url_list"][-1]
+    if "images" not in data:
+        video_url: str = data["hdplay"]
         await handle_video(message, video_url)
     else:
-        images: list[str] = [
-            item["display_image"]["url_list"][-1]
-            for item in data["image_post_info"]["images"]
-        ]
+        images: list[str] = data["images"]
         await handle_images(message, images)
 
-    music_url = data["music"]["play_url"]["uri"]
+    music_url = data["music"]
     await handle_music(message, music_url)
 
 
