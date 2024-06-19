@@ -38,7 +38,7 @@ async def get_data(aweme_id: int):
         ) as response:
             json = await response.json()
             if json["status_code"] != 0:
-                raise Exception(json["statu_msg"])
+                raise Exception(json["status_msg"])
             return json["aweme_details"][0]
 
 
