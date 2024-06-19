@@ -6,6 +6,9 @@ from aiogram.utils.markdown import hlink
 
 
 def split_list(arr: list[Any], chunk_size: int):
+    """
+    Splits the list into chunks
+    """
     for i in range(0, len(arr), chunk_size):
         yield arr[i : i + chunk_size]
 

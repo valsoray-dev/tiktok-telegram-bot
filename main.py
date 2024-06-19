@@ -22,6 +22,12 @@ async def main() -> None:
 
     dp.include_routers(base_router, url_router)
 
+    # This bot is running on my home Linux server.
+    # Sometimes, "I test in production" and
+    # users send messages when the bot is down.
+    # Here I need to drop all updates, so
+    # the bot doesn't have to respond to messages
+    # that were sent while the bot wasn't running.
     await bot.delete_webhook(drop_pending_updates=True)
 
     await dp.start_polling(bot)
@@ -32,7 +38,10 @@ if __name__ == "__main__":
         level=logging.INFO,
         format="%(message)s",
         datefmt="[%X]",
-        handlers=[RichHandler(rich_tracebacks=True)],
+        handlers=[
+            # This bot is far from the most stable, so I need cool tracebacks
+            RichHandler(rich_tracebacks=True)
+        ],
     )
     with suppress(KeyboardInterrupt):
         asyncio.run(main())

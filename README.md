@@ -35,7 +35,7 @@ This bot allows users to download video or slide show from TikTok directly throu
 5. Run the bot:
 
     ```bash
-    python3 bot.py
+    python3 main.py
     ```
 
 ## License
