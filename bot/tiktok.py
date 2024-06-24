@@ -1,13 +1,17 @@
 import re
+from os import getenv
 
 from aiohttp import ClientSession
+from dotenv import load_dotenv
+
+load_dotenv()
 
 URL = "https://api16-normal-c-useast1a.tiktokv.com/aweme/v1/multi/aweme/detail/"
 
 PARAMS = {
     # The first two appear after installing the application
-    "iid": 7379691220551141126,
-    "device_id": 7379690547022071302,
+    "iid": getenv("INSTALL_ID"),
+    "device_id": getenv("DEVICE_ID"),
     "channel": "googleplay",
     "aid": 1233,
     "app_name": "musical_ly",

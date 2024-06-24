@@ -48,7 +48,7 @@ async def url_handler(message: Message):
         await handle_video(message, video_url)
     else:
         images: list[str] = [
-            item["display_image"]["url_list"][-1] # first is .heic, second is .jpeg
+            item["display_image"]["url_list"][-1]  # first is .heic, second is .jpeg
             for item in data["image_post_info"]["images"]
         ]
         await handle_images(message, images)
