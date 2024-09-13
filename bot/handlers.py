@@ -44,17 +44,11 @@ async def url_handler(message: Message):
     data = await get_data(aweme_id)
 
     if "image_post_info" not in data:
-        video_url: str = data["video"]["bit_rate"][0]["play_addr"]["url_list"][-1]
-        await handle_video(message, video_url)
+        await handle_video(message, data)
     else:
-        images: list[str] = [
-            item["display_image"]["url_list"][-1]  # first is .heic, second is .jpeg
-            for item in data["image_post_info"]["images"]
-        ]
-        await handle_images(message, images)
+        await handle_images(message, data)
 
-    music_url = data["music"]["play_url"]["uri"]
-    await handle_music(message, music_url)
+    await handle_music(message, data)
 
 
 @url_router.error()

@@ -13,7 +13,20 @@ def split_list(arr: list[Any], chunk_size: int):
         yield arr[i : i + chunk_size]
 
 
-async def handle_video(message: Message, video_url: str):
+async def handle_video(message: Message, data):
+    video_url = ""
+
+    for item in data["video"]["bit_rate"]:
+        # if the video is not encoded with proprietary bvc2 codec
+        if "is_bytevc1" in item and item["is_bytevc1"] != 2:
+            video_url = item["play_addr"]["url_list"][0]
+            break
+
+    # if no video was found according to the above criteria
+    # it's not likely to happen, but just in case
+    if video_url == "":
+        video_url = data["video"]["play_addr"]["url_list"][0]
+
     await message.bot.send_chat_action(message.chat.id, "upload_video")
 
     try:
@@ -26,7 +39,12 @@ async def handle_video(message: Message, video_url: str):
         )
 
 
-async def handle_images(message: Message, images: list[str]):
+async def handle_images(message: Message, data):
+    images: list[str] = [
+        item["display_image"]["url_list"][-1]  # first is .heic, second is .jpeg
+        for item in data["image_post_info"]["images"]
+    ]
+
     chunks = split_list(images, 10)
 
     for chunk in chunks:
@@ -35,7 +53,9 @@ async def handle_images(message: Message, images: list[str]):
         await message.reply_media_group(media_group)
 
 
-async def handle_music(message: Message, music_url: str):
+async def handle_music(message: Message, data):
+    music_url = data["music"]["play_url"]["uri"]
+
     if not music_url:
         return await message.reply("Музика недоступна")
 

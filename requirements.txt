@@ -1,4 +1,4 @@
-aiogram[fast]~=3.8.0
-aiohttp[speedups]~=3.9.0
+aiogram[fast]~=3.13.0
+aiohttp[speedups]~=3.10.0
 python-dotenv~=1.0.0
-rich~=13.7.0
+rich~=13.8.0
