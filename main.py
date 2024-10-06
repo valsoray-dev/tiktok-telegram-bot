@@ -9,18 +9,21 @@ from aiogram.enums import ParseMode
 from dotenv import load_dotenv
 from rich.logging import RichHandler
 
-from bot.handlers import base_router, url_router
+from bot.handlers import error_router, start_router, url_router
 
 load_dotenv()
 
-TOKEN = getenv("BOT_TOKEN")
+TOKEN: str | None = getenv("BOT_TOKEN")
+if not TOKEN:
+    raise ValueError("BOT_TOKEN should be in .env")
+
+bot = Bot(TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
 
 async def main() -> None:
-    bot = Bot(TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
 
-    dp.include_routers(base_router, url_router)
+    dp.include_routers(start_router, url_router, error_router)
 
     # This bot is running on my home Linux server.
     # Sometimes, "I test in production" and

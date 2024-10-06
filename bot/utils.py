@@ -1,8 +1,7 @@
+import re
 from typing import Any
 
-from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import InputMediaPhoto, Message, URLInputFile
-from aiogram.utils.markdown import hlink
+from aiohttp import ClientSession
 
 
 def split_list(arr: list[Any], chunk_size: int):
@@ -13,52 +12,22 @@ def split_list(arr: list[Any], chunk_size: int):
         yield arr[i : i + chunk_size]
 
 
-async def handle_video(message: Message, data):
-    video_url = ""
-
-    for item in data["video"]["bit_rate"]:
-        # if the video is not encoded with proprietary bvc2 codec
-        if "is_bytevc1" in item and item["is_bytevc1"] != 2:
-            video_url = item["play_addr"]["url_list"][0]
-            break
-
-    # if no video was found according to the above criteria
-    # it's not likely to happen, but just in case
-    if video_url == "":
-        video_url = data["video"]["play_addr"]["url_list"][0]
-
-    await message.bot.send_chat_action(message.chat.id, "upload_video")
-
-    try:
-        await message.reply_video(video_url)
-    except TelegramBadRequest:
-        # video file is bigger than 20 MB
-        await message.reply(
-            "Це відео завелике тому Телеграм не може його завантажити. "
-            f"Ось пряме посилання на це відео: {hlink('CLICK ME', video_url)}"
-        )
+def get_aweme_id(url: str) -> int | None:
+    if aweme_id := re.findall(r"(video|photo)/(\d{19})", url):
+        return int(aweme_id[0][1])
+    return None
 
 
-async def handle_images(message: Message, data):
-    images: list[str] = [
-        item["display_image"]["url_list"][-1]  # first is .heic, second is .jpeg
-        for item in data["image_post_info"]["images"]
-    ]
+async def get_redirect_url(url: str) -> str | None:
+    match url.removeprefix("https://").split("/")[0]:
+        # TikTok Web
+        case "www.tiktok.com":
+            return url
 
-    chunks = split_list(images, 10)
-
-    for chunk in chunks:
-        await message.bot.send_chat_action(message.chat.id, "upload_photo")
-        media_group = [InputMediaPhoto(media=URLInputFile(image)) for image in chunk]
-        await message.reply_media_group(media_group)
-
-
-async def handle_music(message: Message, data):
-    music_url = data["music"]["play_url"]["uri"]
-
-    if not music_url:
-        return await message.reply("Музика недоступна")
-
-    await message.bot.send_chat_action(message.chat.id, "upload_audio")
-
-    await message.reply_audio(music_url)
+        # Mobile App
+        case "vm.tiktok.com":
+            async with ClientSession() as session:
+                async with session.options(url, allow_redirects=False) as request:
+                    return request.headers["Location"]
+        case _:
+            return None
