@@ -43,9 +43,14 @@ async def get_data(aweme_id: int) -> ApiResponse:
             URL, data={"aweme_ids": f"[{aweme_id}]"}, params=PARAMS, headers=HEADERS
         ) as response:
             json: dict[str, Any] = await response.json(loads=orjson.loads)
-            if json["status_code"] != 0:
-                return ApiResponse(success=False, message=json["status_msg"])
+            if json is None:
+                raise Exception("Something horrible happend...")
 
+            if json.get("status_code") != 0:
+                return ApiResponse(success=False, message=json.get("status_msg"))
+
+            # can only access if `status_code` present and it's not None
+            # so it's safe (i think so)
             data_json: dict[str, Any] = json["aweme_details"][0]
             data = Data(
                 video_url=extract_video_url(data_json),

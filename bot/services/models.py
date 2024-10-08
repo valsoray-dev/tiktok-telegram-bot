@@ -11,5 +11,5 @@ class Data:
 @dataclass
 class ApiResponse:
     success: bool
-    message: str = ""
+    message: str | None = None
     data: Data | None = None
