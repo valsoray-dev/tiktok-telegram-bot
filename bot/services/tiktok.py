@@ -1,3 +1,4 @@
+import logging
 from os import getenv
 from typing import Any
 
@@ -44,7 +45,8 @@ async def get_data(aweme_id: int) -> ApiResponse:
         ) as response:
             json: dict[str, Any] = await response.json(loads=orjson.loads)
             if json is None:
-                raise Exception("Something horrible happend...")
+                logging.warning("JSON Response is empty, trying again.")
+                return await get_data(aweme_id)
 
             if json.get("status_code") != 0:
                 return ApiResponse(success=False, message=json.get("status_msg"))
