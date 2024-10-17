@@ -1,0 +1,13 @@
+[project]
+name = "tiktok-telegram-bot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "aiogram[fast]~=3.13.0",
+    "aiohttp[speedups]~=3.10.0",
+    "orjson~=3.10.0",
+    "python-dotenv~=1.0.0",
+    "rich~=13.9.0",
+]
