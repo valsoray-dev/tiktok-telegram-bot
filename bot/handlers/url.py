@@ -79,9 +79,9 @@ async def url_handler(message: Message):
             ]
             await message.reply_media_group(media_group)
 
-    music_url = response.data.music_url
-    if not music_url:
-        return await message.reply("Музика недоступна")
+    # music_url = response.data.music_url
+    # if not music_url:
+    #     return await message.reply("Музика недоступна")
 
-    await message.bot.send_chat_action(message.chat.id, "upload_audio")
-    await message.reply_audio(music_url)
+    # await message.bot.send_chat_action(message.chat.id, "upload_audio")
+    # await message.reply_audio(music_url)
