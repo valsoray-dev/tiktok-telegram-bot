@@ -13,21 +13,26 @@ def split_list(arr: list[Any], chunk_size: int):
 
 
 def get_aweme_id(url: str) -> int | None:
-    if aweme_id := re.findall(r"(video|photo)/(\d{19})", url):
-        return int(aweme_id[0][1])
+    if match := re.search(r"(?:video|photo)/(\d{19})", url):
+        return int(match.group(1))
     return None
 
 
-async def get_redirect_url(url: str) -> str | None:
+async def find_tiktok_url(text: str) -> tuple[str, str] | None:
+    match = re.search(r"https://(?:www|vm)\.tiktok\.com/[^\s]+", text)
+    if not match:
+        return None
+
+    url = match.group()
     match url.removeprefix("https://").split("/")[0]:
         # TikTok Web
         case "www.tiktok.com":
-            return url
+            return url, url
 
         # Mobile App
         case "vm.tiktok.com":
             async with ClientSession() as session:
                 async with session.options(url, allow_redirects=False) as request:
-                    return request.headers["Location"]
+                    return request.headers["Location"], url
         case _:
             return None
