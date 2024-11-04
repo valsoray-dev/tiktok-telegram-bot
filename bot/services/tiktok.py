@@ -43,6 +43,11 @@ async def get_data(aweme_id: int) -> ApiResponse:
         async with session.post(
             URL, data={"aweme_ids": f"[{aweme_id}]"}, params=PARAMS, headers=HEADERS
         ) as response:
+            # it happens from time to time
+            if response.status == 504:
+                logging.warning("Got HTTP status 504, retrying.")
+                return await get_data(aweme_id)
+
             json: dict[str, Any] = await response.json(loads=orjson.loads)
             if json is None:
                 logging.warning("JSON Response is empty, trying again.")
