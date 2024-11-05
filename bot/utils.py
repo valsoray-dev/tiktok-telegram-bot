@@ -19,12 +19,12 @@ def get_aweme_id(url: str) -> int | None:
 
 
 async def find_tiktok_url(text: str) -> str | None:
-    match = re.search(r"https://(?:www|vm)\.tiktok\.com/[^\s]+", text)
+    match = re.search(r"(?:www|vm)\.tiktok\.com/[^\s]+", text)
     if not match:
         return None
 
-    url = match.group()
-    match url.removeprefix("https://").split("/")[0]:
+    url = "https://" + match.group()
+    match url.split("/")[2]:
         # TikTok Web
         case "www.tiktok.com":
             return url

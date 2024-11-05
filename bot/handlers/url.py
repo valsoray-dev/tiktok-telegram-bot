@@ -19,18 +19,16 @@ async def url_handler(message: Message, bot: Bot):
 
     url = await find_tiktok_url(message.text)
 
+    # if url not found in user message, just ignore it
     if not url:
-        logging.warning(
-            f"Couldn't find the TikTok link in message text.\nTEXT: [{message.text}]"
-        )
-        return await message.reply("Я не знайшов посилання на ТікТок в Вашому тексті!")
+        return
 
     aweme_id = get_aweme_id(url)
 
     if not aweme_id:
         logging.warning(f"Failed to get Aweme ID.\nURL: [{url}]")
         return await message.reply(
-            "При обробці вашого посилання сталася помилка. Перевірте посилання та спробуйте ще раз!"
+            "За вашим посиланням нічого не знайдено. Перевірте його правильність та спробуйте ще раз."
         )
 
     response: ApiResponse = await tiktok.get_data(aweme_id)
