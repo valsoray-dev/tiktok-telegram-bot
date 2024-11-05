@@ -2,12 +2,7 @@ import logging
 
 from aiogram import F, Router
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import (
-    InputMediaPhoto,
-    Message,
-    URLInputFile,
-    ReplyParameters,
-)
+from aiogram.types import InputMediaPhoto, Message, URLInputFile
 from aiogram.utils.markdown import hlink
 
 from bot.services import tiktok
@@ -19,7 +14,7 @@ url_router = Router()
 
 @url_router.message(F.text)
 async def url_handler(message: Message):
-    url, original_url = await find_tiktok_url(message.text)  # type: ignore
+    url = await find_tiktok_url(message.text)  # type: ignore
 
     if not url:
         logging.warning(
@@ -42,7 +37,7 @@ async def url_handler(message: Message):
                 return await message.reply("Це відео було видалено з ТікТоку!")
             case _:
                 raise Exception(
-                    f"Something gone wrong: {response.message}\nURL: [{url}]"
+                    f"Unexpected error from API: {response.message}\nURL: [{url}]"
                 )
 
     if not response.data.images:
@@ -50,26 +45,18 @@ async def url_handler(message: Message):
         await message.bot.send_chat_action(message.chat.id, "upload_video")
 
         try:
-            await message.bot.send_video(
-                message.chat.id,
-                video_url,
-                message_thread_id=message.message_thread_id,
-                reply_parameters=ReplyParameters(
-                    message_id=message.message_id,
-                    chat_id=message.chat.id,
-                    quote=original_url,
-                ),
-            )
+            await message.reply_video(video_url)
         except TelegramBadRequest as e:
-            # video file is bigger than 20 MB
-            # or something else, i don't know
-            if e.message == "Bad Request: failed to get HTTP URL content":
-                await message.reply(
-                    "Це відео завелике тому Телеграм не може його завантажити. "
-                    f"Ось пряме посилання на це відео: {hlink('CLICK ME', video_url)}"
-                )
-            else:
-                raise e
+            match e.message:
+                # video file is bigger than 20 MB
+                # or something else, i don't know
+                case "Bad Request: failed to get HTTP URL content":
+                    await message.reply(
+                        "Це відео завелике тому Телеграм не може його завантажити. "
+                        f"Ось пряме посилання на це відео: {hlink('CLICK ME', video_url)}"
+                    )
+                case _:
+                    raise e
     else:
         chunks = split_list(response.data.images, 10)
         for chunk in chunks:
