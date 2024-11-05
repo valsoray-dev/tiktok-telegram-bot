@@ -1,9 +1,10 @@
 import logging
 
-from aiogram import F, Router
+from aiogram import Bot, F, Router, html
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InputMediaPhoto, Message, URLInputFile
-from aiogram.utils.markdown import hlink
+from aiogram.utils.chat_action import ChatActionSender
+from aiogram.utils.media_group import MediaGroupBuilder
 
 from bot.services import tiktok
 from bot.services.models import ApiResponse
@@ -13,8 +14,10 @@ url_router = Router()
 
 
 @url_router.message(F.text)
-async def url_handler(message: Message):
-    url = await find_tiktok_url(message.text)  # type: ignore
+async def url_handler(message: Message, bot: Bot):
+    assert message.text
+
+    url = await find_tiktok_url(message.text)
 
     if not url:
         logging.warning(
@@ -40,12 +43,17 @@ async def url_handler(message: Message):
                     f"Unexpected error from API: {response.message}\nURL: [{url}]"
                 )
 
+    assert response.data
+
     if not response.data.images:
         video_url = response.data.video_url
-        await message.bot.send_chat_action(message.chat.id, "upload_video")
+        assert video_url
 
         try:
-            await message.reply_video(video_url)
+            async with ChatActionSender.upload_video(
+                message.chat.id, bot, message.message_thread_id
+            ):
+                await message.reply_video(video_url)
         except TelegramBadRequest as e:
             match e.message:
                 # video file is bigger than 20 MB
@@ -53,18 +61,20 @@ async def url_handler(message: Message):
                 case "Bad Request: failed to get HTTP URL content":
                     await message.reply(
                         "Це відео завелике тому Телеграм не може його завантажити. "
-                        f"Ось пряме посилання на це відео: {hlink('CLICK ME', video_url)}"
+                        f"Ось пряме посилання на це відео: {html.link('CLICK ME', video_url)}"
                     )
                 case _:
                     raise e
     else:
         chunks = split_list(response.data.images, 10)
         for chunk in chunks:
-            await message.bot.send_chat_action(message.chat.id, "upload_photo")
-            media_group = [
-                InputMediaPhoto(media=URLInputFile(image)) for image in chunk
-            ]
-            await message.reply_media_group(media_group)
+            async with ChatActionSender.upload_photo(
+                message.chat.id, bot, message.message_thread_id
+            ):
+                media_group = MediaGroupBuilder(
+                    [InputMediaPhoto(media=URLInputFile(image)) for image in chunk]
+                )
+                await message.reply_media_group(media_group.build())
 
     # music_url = response.data.music_url
     # if not music_url:

@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 from bot.services.models import ApiResponse, Data
 
 load_dotenv()
-INSTALL_ID: str | None = getenv("INSTALL_ID")
-DEVICE_ID: str | None = getenv("DEVICE_ID")
+INSTALL_ID = getenv("INSTALL_ID")
+DEVICE_ID = getenv("DEVICE_ID")
 
 if not INSTALL_ID or not DEVICE_ID:
     raise ValueError("INSTALL_ID and DEVICE_ID should be in .env")
@@ -48,8 +48,9 @@ async def get_data(aweme_id: int) -> ApiResponse:
                 logging.warning("Got HTTP status 504, retrying.")
                 return await get_data(aweme_id)
 
-            json: dict[str, Any] = await response.json(loads=orjson.loads)
+            json: dict[str, Any] | None = await response.json(loads=orjson.loads)
             if json is None:
+                # TODO: if INSTALL_ID and DEVICE_ID are incorrect, here will be infinity loop
                 logging.warning("JSON Response is empty, trying again.")
                 return await get_data(aweme_id)
 

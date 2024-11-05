@@ -13,7 +13,7 @@ from bot.handlers import error_router, start_router, url_router
 
 load_dotenv()
 
-TOKEN: str | None = getenv("BOT_TOKEN")
+TOKEN = getenv("BOT_TOKEN")
 if not TOKEN:
     raise ValueError("BOT_TOKEN should be in .env")
 
@@ -25,7 +25,6 @@ async def main() -> None:
 
     dp.include_routers(start_router, url_router, error_router)
 
-    # This bot is running on my home Linux server.
     # Sometimes, "I test in production" and
     # users send messages when the bot is down.
     # Here I need to drop all updates, so
@@ -40,7 +39,6 @@ if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
         format="%(message)s",
-        datefmt="[%X]",
         handlers=[
             # This bot is far from the most stable, so I need cool tracebacks
             RichHandler(rich_tracebacks=True)
