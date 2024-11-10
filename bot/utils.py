@@ -1,7 +1,10 @@
+import logging
 import re
-from typing import Any
+from typing import Any, Callable, TypeVar
 
 from aiohttp import ClientSession
+
+T = TypeVar("T")
 
 
 def split_list(arr: list[Any], chunk_size: int):
@@ -36,3 +39,18 @@ async def find_tiktok_url(text: str) -> str | None:
                     return request.headers["Location"]
         case _:
             return None
+
+
+def catch_key_error(func: Callable[..., T]) -> Callable[..., T | None]:
+    """
+    Wrapper for functions that use many dictionary indexing
+    """
+
+    def wrapper(*args: Any, **kwargs: Any) -> T | None:
+        try:
+            return func(*args, **kwargs)
+        except KeyError as err:
+            logging.error(f'({func.__name__}) Key "{err.args[0]}" not found.')
+            return
+
+    return wrapper

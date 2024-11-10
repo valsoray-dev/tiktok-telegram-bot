@@ -7,6 +7,7 @@ from aiohttp import ClientSession
 from dotenv import load_dotenv
 
 from bot.services.models import ApiResponse, Data
+from bot.utils import catch_key_error
 
 load_dotenv()
 INSTALL_ID = getenv("INSTALL_ID")
@@ -48,8 +49,8 @@ async def get_data(aweme_id: int) -> ApiResponse:
                 logging.warning("Got HTTP status 504, retrying.")
                 return await get_data(aweme_id)
 
-            json: dict[str, Any] | None = await response.json(loads=orjson.loads)
-            if json is None:
+            json: dict[str, Any] = await response.json(loads=orjson.loads)
+            if not json:
                 # TODO: if INSTALL_ID and DEVICE_ID are incorrect, here will be infinity loop
                 logging.warning("JSON Response is empty, trying again.")
                 return await get_data(aweme_id)
@@ -69,6 +70,7 @@ async def get_data(aweme_id: int) -> ApiResponse:
             return ApiResponse(success=True, data=data)
 
 
+@catch_key_error
 def extract_video_url(data: dict[str, Any]) -> str | None:
     video_url: str | None = None
 
@@ -86,12 +88,15 @@ def extract_video_url(data: dict[str, Any]) -> str | None:
     return video_url
 
 
+@catch_key_error
 def extract_music_url(data: dict[str, Any]) -> str | None:
-    music_url: str | None = data["music"]["play_url"]["uri"]
+    if "music" not in data:
+        return None
 
-    return music_url
+    return data["music"]["play_url"]["uri"]
 
 
+@catch_key_error
 def extract_images(data: dict[str, Any]) -> list[str] | None:
     if "image_post_info" not in data:
         return None

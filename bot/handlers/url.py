@@ -35,17 +35,17 @@ async def url_handler(message: Message, bot: Bot):
     if not response.success:
         match response.message:
             case "Video has been removed":
-                return await message.reply("Це відео було видалено з ТікТоку!")
+                return await message.reply("Це відео було видалено з ТікТоку.")
             case _:
                 raise Exception(
                     f"Unexpected error from API: {response.message}\nURL: [{url}]"
                 )
 
-    assert response.data
+    assert response.data is not None
 
     if not response.data.images:
         video_url = response.data.video_url
-        assert video_url
+        assert video_url is not None
 
         try:
             async with ChatActionSender.upload_video(
@@ -73,10 +73,3 @@ async def url_handler(message: Message, bot: Bot):
                     [InputMediaPhoto(media=URLInputFile(image)) for image in chunk]
                 )
                 await message.reply_media_group(media_group.build())
-
-    # music_url = response.data.music_url
-    # if not music_url:
-    #     return await message.reply("Музика недоступна")
-
-    # await message.bot.send_chat_action(message.chat.id, "upload_audio")
-    # await message.reply_audio(music_url)
