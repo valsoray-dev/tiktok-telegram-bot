@@ -1,9 +1,9 @@
 [project]
 name = "tiktok-telegram-bot"
 version = "0.1.0"
-description = "Add your description here"
+description = "TikTok Downloader Bot"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 dependencies = [
     "aiogram[fast]~=3.14.0",
     "aiohttp[speedups]~=3.10.0",
