@@ -1,13 +1,13 @@
 import logging
 import re
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Generator, TypeVar
 
 from aiohttp import ClientSession
 
 T = TypeVar("T")
 
 
-def split_list(arr: list[Any], chunk_size: int):
+def split_list(arr: list[Any], chunk_size: int) -> Generator[list[Any], Any, None]:
     """
     Splits the list into chunks
     """
@@ -16,17 +16,17 @@ def split_list(arr: list[Any], chunk_size: int):
 
 
 def get_aweme_id(url: str) -> int | None:
-    if match := re.search(r"(?:video|photo)/(\d{19})", url):
+    if match := re.search(r"(?:video|photo|v)/(\d{19})", url):
         return int(match.group(1))
     return None
 
 
 async def find_tiktok_url(text: str) -> str | None:
-    match = re.search(r"(?:www|vm)\.tiktok\.com/[^\s]+", text)
+    match: re.Match[str] | None = re.search(r"(?:www|vm)\.tiktok\.com/[^\s]+", text)
     if not match:
         return None
 
-    url = "https://" + match.group()
+    url: str = "https://" + match.group()
     match url.split("/")[2]:
         # TikTok Web
         case "www.tiktok.com":
@@ -51,6 +51,6 @@ def catch_key_error(func: Callable[..., T]) -> Callable[..., T | None]:
             return func(*args, **kwargs)
         except KeyError as err:
             logging.error(f'({func.__name__}) Key "{err.args[0]}" not found.')
-            return
+            return None
 
     return wrapper

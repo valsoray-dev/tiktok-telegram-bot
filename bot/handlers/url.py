@@ -44,7 +44,7 @@ async def url_handler(message: Message, bot: Bot):
     assert response.data is not None
 
     if not response.data.images:
-        video_url = response.data.video_url
+        video_url: str | None = response.data.video_url
         assert video_url is not None
 
         try:

@@ -8,7 +8,7 @@ start_router = Router()
 
 
 @start_router.message(CommandStart())
-async def command_start_handler(message: Message, bot: Bot):
+async def command_start_handler(message: Message, bot: Bot) -> None:
     await message.reply("👋")
     await bot.send_chat_action(message.chat.id, "typing")
     await asyncio.sleep(0.7)
