@@ -22,18 +22,19 @@ def get_aweme_id(url: str) -> int | None:
 
 
 async def find_tiktok_url(text: str) -> str | None:
-    match: re.Match[str] | None = re.search(r"(?:www|vm)\.tiktok\.com/[^\s]+", text)
+    match: re.Match[str] | None = re.search(r"((?:www|vm|vt)\.tiktok\.com)/[^\s]+", text)
     if not match:
         return None
 
     url: str = "https://" + match.group()
-    match url.split("/")[2]:
+    domain = match.group(1)
+    match domain:
         # TikTok Web
         case "www.tiktok.com":
             return url
 
         # Mobile App
-        case "vm.tiktok.com":
+        case "vm.tiktok.com" | "vt.tiktok.com":
             async with ClientSession() as session:
                 async with session.options(url, allow_redirects=False) as request:
                     return request.headers["Location"]
