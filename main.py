@@ -41,7 +41,7 @@ if __name__ == "__main__":
         format="%(message)s",
         handlers=[
             # This bot is far from the most stable, so I need cool tracebacks
-            RichHandler(rich_tracebacks=True)
+            RichHandler(rich_tracebacks=True, log_time_format="[%d/%m/%y %H:%M:%S]")
         ],
     )
     with suppress(KeyboardInterrupt):
