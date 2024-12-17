@@ -3,7 +3,7 @@ from typing import Any
 import orjson
 from aiohttp import ClientSession
 
-from bot.services.models import ApiResponse, Data
+from .models import ApiResponse, Data
 
 URL = "https://www.tikwm.com/api/"
 

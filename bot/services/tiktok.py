@@ -6,8 +6,8 @@ import orjson
 from aiohttp import ClientSession
 from dotenv import load_dotenv
 
-from bot.services.models import ApiResponse, Data
-from bot.utils import catch_key_error
+from .models import ApiResponse, Data
+from .utils import catch_key_error
 
 load_dotenv()
 INSTALL_ID = getenv("INSTALL_ID")
@@ -46,13 +46,15 @@ async def get_data(aweme_id: int) -> ApiResponse:
         ) as response:
             # it happens from time to time
             if response.status == 504:
-                logging.warning("Got HTTP status 504, retrying.")
+                logging.warning(
+                    "[TikTok] API responded with HTTP status 504, trying again."
+                )
                 return await get_data(aweme_id)
 
             json: dict[str, Any] = await response.json(loads=orjson.loads)
             if not json:
-                # TODO: if INSTALL_ID and DEVICE_ID are incorrect, here will be infinity loop
-                logging.warning("JSON Response is empty, trying again.")
+                # TODO: if INSTALL_ID and/or DEVICE_ID are incorrect, here will be infinity loop
+                logging.warning("[TikTok] Response body is empty, trying again.")
                 return await get_data(aweme_id)
 
             if json.get("status_code") != 0:
@@ -77,13 +79,13 @@ def extract_video_url(data: dict[str, Any]) -> str | None:
     for item in data["video"]["bit_rate"]:
         # if the video is not encoded with proprietary bvc2 codec
         if "is_bytevc1" in item and item["is_bytevc1"] != 2:
-            video_url = item["play_addr"]["url_list"][0]
+            video_url = item["play_addr"]["url_list"][-1]
             break
 
     # if no video was found according to the above criteria
     # it's not likely to happen, but just in case
     if not video_url:
-        video_url = data["video"]["play_addr"]["url_list"][0]
+        video_url = data["video"]["play_addr"]["url_list"][-1]
 
     return video_url
 
