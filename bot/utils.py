@@ -1,10 +1,7 @@
-import logging
 import re
-from typing import Any, Callable, Generator, TypeVar
+from typing import Any, Generator
 
 from aiohttp import ClientSession
-
-T = TypeVar("T")
 
 
 def split_list(arr: list[Any], chunk_size: int) -> Generator[list[Any], Any, None]:
@@ -22,12 +19,14 @@ def get_aweme_id(url: str) -> int | None:
 
 
 async def find_tiktok_url(text: str) -> str | None:
-    match: re.Match[str] | None = re.search(r"((?:www|vm|vt)\.tiktok\.com)/[^\s]+", text)
+    match: re.Match[str] | None = re.search(
+        r"((?:www|vm|vt)\.tiktok\.com)/[^\s]+", text
+    )
     if not match:
         return None
 
     url: str = "https://" + match.group()
-    domain = match.group(1)
+    domain: str = match.group(1)
     match domain:
         # TikTok Web
         case "www.tiktok.com":
@@ -40,18 +39,3 @@ async def find_tiktok_url(text: str) -> str | None:
                     return request.headers["Location"]
         case _:
             return None
-
-
-def catch_key_error(func: Callable[..., T]) -> Callable[..., T | None]:
-    """
-    Wrapper for functions that use many dictionary indexing
-    """
-
-    def wrapper(*args: Any, **kwargs: Any) -> T | None:
-        try:
-            return func(*args, **kwargs)
-        except KeyError as err:
-            logging.error(f'({func.__name__}) Key "{err.args[0]}" not found.')
-            return None
-
-    return wrapper
