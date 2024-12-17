@@ -79,13 +79,13 @@ def extract_video_url(data: dict[str, Any]) -> str | None:
     for item in data["video"]["bit_rate"]:
         # if the video is not encoded with proprietary bvc2 codec
         if "is_bytevc1" in item and item["is_bytevc1"] != 2:
-            video_url = item["play_addr"]["url_list"][-1]
+            video_url = item["play_addr"]["url_list"][0]
             break
 
     # if no video was found according to the above criteria
     # it's not likely to happen, but just in case
     if not video_url:
-        video_url = data["video"]["play_addr"]["url_list"][-1]
+        video_url = data["video"]["play_addr"]["url_list"][0]
 
     return video_url
 
