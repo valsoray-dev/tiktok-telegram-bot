@@ -3,7 +3,7 @@ import logging
 from contextlib import suppress
 from os import getenv
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, loggers
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from dotenv import load_dotenv
@@ -13,16 +13,12 @@ from bot.handlers import error_router, start_router, url_router
 
 load_dotenv()
 
-TOKEN = getenv("BOT_TOKEN")
-if not TOKEN:
-    raise ValueError("BOT_TOKEN should be in .env")
-
-bot = Bot(TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-
 
 async def main() -> None:
-    dp = Dispatcher()
+    token = getenv("BOT_TOKEN")
+    bot = Bot(token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
+    dp = Dispatcher()
     dp.include_routers(start_router, url_router, error_router)
 
     # Sometimes, "I test in production" and
@@ -44,5 +40,9 @@ if __name__ == "__main__":
             RichHandler(rich_tracebacks=True, log_time_format="[%d/%m/%y %H:%M:%S]")
         ],
     )
+
+    # disable updates info messages
+    loggers.event.setLevel(logging.WARNING)
+
     with suppress(KeyboardInterrupt):
         asyncio.run(main())
