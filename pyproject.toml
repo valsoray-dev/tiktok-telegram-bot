@@ -1,11 +1,13 @@
 [project]
 name = "tiktok-telegram-bot"
 version = "0.1.0"
-description = "TikTok Downloader Bot"
+authors = [{ name = "valsoray-dev" }]
+description = "Telegram bot to download videos/photos/music from TikTok"
 readme = "README.md"
+license = { text = "AGPL-3.0-or-later" }
 requires-python = ">=3.10"
 dependencies = [
-    "aiogram[fast]~=3.14.0",
+    "aiogram[fast]~=3.15.0",
     "aiohttp[speedups]~=3.10.0",
     "orjson~=3.10.0",
     "python-dotenv~=1.0.0",
