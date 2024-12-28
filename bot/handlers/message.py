@@ -9,14 +9,14 @@ from aiogram.utils.media_group import MediaGroupBuilder
 
 from ..services import tiktok
 from ..services.models import ApiResponse
-from ..utils import find_tiktok_url, get_aweme_id, split_list
+from ..utils import TIKTOK_URL_REGEX, find_tiktok_url, get_aweme_id, split_list
 
-url_router = Router()
+message_router = Router()
 
 
-@url_router.message(F.text)
+@message_router.message(F.text.regexp(TIKTOK_URL_REGEX))
 async def url_handler(message: Message, bot: Bot):
-    assert message.text
+    assert message.text is not None
 
     url = await find_tiktok_url(message.text)
 
@@ -27,7 +27,7 @@ async def url_handler(message: Message, bot: Bot):
     aweme_id = get_aweme_id(url)
 
     if not aweme_id:
-        logging.warning(f"Failed to get Aweme ID.\nURL: [{url}]")
+        logging.warning("Failed to get Aweme ID.\nURL: [%s]", url)
         return await message.reply(
             "За вашим посиланням нічого не знайдено. "
             "Перевірте його правильність та спробуйте ще раз."

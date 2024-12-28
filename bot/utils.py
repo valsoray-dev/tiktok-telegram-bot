@@ -3,6 +3,8 @@ from typing import Any, Generator
 
 from aiohttp import ClientSession
 
+TIKTOK_URL_REGEX = r"((?:www|vm|vt)\.tiktok\.com)/[^\s]+"
+
 
 def split_list(arr: list[Any], chunk_size: int) -> Generator[list[Any], Any, None]:
     """

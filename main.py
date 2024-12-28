@@ -9,22 +9,23 @@ from aiogram.enums import ParseMode
 from dotenv import load_dotenv
 from rich.logging import RichHandler
 
-from bot.handlers import error_router, start_router, url_router
+from bot.handlers import error_router, message_router, start_router
 
 load_dotenv()
 
 
 async def main() -> None:
-    token = getenv("BOT_TOKEN")
-    bot = Bot(token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    bot_token = getenv("BOT_TOKEN")
+    if not bot_token:
+        raise ValueError("BOT_TOKEN should be in .env")
+
+    bot = Bot(bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
     dp = Dispatcher()
-    dp.include_routers(start_router, url_router, error_router)
+    dp.include_routers(start_router, message_router, error_router)
 
-    # Sometimes, "I test in production" and
-    # users send messages when the bot is down.
-    # Here I need to drop all updates, so
-    # the bot doesn't have to respond to messages
+    # Sometimes, "I test in production" and users send messages when the bot is down.
+    # Here I need to drop all updates, so the bot doesn't have to respond to messages
     # that were sent while the bot wasn't running.
     await bot.delete_webhook(drop_pending_updates=True)
 
@@ -41,7 +42,7 @@ if __name__ == "__main__":
         ],
     )
 
-    # disable updates info messages
+    # disable annoying aiogram update info messages
     loggers.event.setLevel(logging.WARNING)
 
     with suppress(KeyboardInterrupt):
