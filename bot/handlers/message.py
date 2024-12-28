@@ -9,12 +9,12 @@ from aiogram.utils.media_group import MediaGroupBuilder
 
 from ..services import tiktok
 from ..services.models import ApiResponse
-from ..utils import TIKTOK_URL_REGEX, find_tiktok_url, get_aweme_id, split_list
+from ..utils import find_tiktok_url, get_aweme_id, split_list
 
 message_router = Router()
 
 
-@message_router.message(F.text.regexp(TIKTOK_URL_REGEX))
+@message_router.message(F.text)
 async def url_handler(message: Message, bot: Bot):
     assert message.text is not None
 
