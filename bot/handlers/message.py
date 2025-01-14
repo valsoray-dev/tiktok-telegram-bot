@@ -38,6 +38,11 @@ async def url_handler(message: Message, bot: Bot):
         match response.message:
             case "Video has been removed":
                 return await message.reply("Це відео було видалено з ТікТоку.")
+            case "Server is currently unavailable. Please try again later.":
+                return await message.reply(
+                    "У цей момент сервера ТікТоку не доступні. "
+                    "Спробуйте ще раз через декілька секунд."
+                )
             case _:
                 # i will do something with this, i swear
                 # TODO: refactor
