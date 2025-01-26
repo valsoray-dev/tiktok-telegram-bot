@@ -3,7 +3,13 @@ from os import getenv
 
 from aiogram import Bot, F, Router, html
 from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import InputMediaPhoto, Message, URLInputFile
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InputMediaPhoto,
+    Message,
+    URLInputFile,
+)
 from aiogram.utils.chat_action import ChatActionSender
 from aiogram.utils.media_group import MediaGroupBuilder
 
@@ -22,7 +28,7 @@ async def url_handler(message: Message, bot: Bot):
 
     # if url not found in user message, just ignore it
     if not url:
-        return
+        return None
 
     aweme_id = get_aweme_id(url)
 
@@ -44,19 +50,8 @@ async def url_handler(message: Message, bot: Bot):
                     "Спробуйте ще раз через декілька секунд."
                 )
             case _:
-                # i will do something with this, i swear
-                # TODO: refactor
-                error_text = (
-                    f"Unexpected error from API: {response.message}\nURL: [{url}]"
-                )
-
-                logging.error(error_text)
-                if owner_id := getenv("OWNER_ID"):
-                    await bot.send_message(owner_id, error_text)
-
-                return await message.reply(
-                    "ТікТок повернув несподівану помилку. "
-                    "Інформація про цю помилку була направлена розробнику."
+                return await handle_unexpected_tiktok_api_error(
+                    bot, message, url, response.message
                 )
 
     assert response.data is not None
@@ -74,11 +69,16 @@ async def url_handler(message: Message, bot: Bot):
 
     elif response.data.video_url:
         video_url = response.data.video_url
+        music_url = response.data.music_url
+
         try:
             async with ChatActionSender.upload_video(
                 message.chat.id, bot, message.message_thread_id
             ):
-                await message.reply_video(video_url)
+                await message.reply_video(
+                    video_url,
+                    reply_markup=assemble_inline_keyboard(aweme_id, music_url),
+                )
         except TelegramBadRequest as e:
             match e.message:
                 # video file is bigger than 20 MB
@@ -91,3 +91,39 @@ async def url_handler(message: Message, bot: Bot):
                     )
                 case _:
                     raise e
+
+
+def assemble_inline_keyboard(
+    aweme_id: int, music_url: str | None
+) -> InlineKeyboardMarkup:
+    """Create an inline keyboard with Music and HD buttons."""
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="Music", url=music_url),
+                InlineKeyboardButton(
+                    text="HD",
+                    url=f"https://www.tikwm.com/video/media/hdplay/{aweme_id}.mp4",
+                ),
+            ]
+        ]
+    )
+
+
+async def handle_unexpected_tiktok_api_error(
+    bot: Bot, message: Message, url: str, api_message: str | None
+) -> None:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+    error_text = f"Unexpected error from API: {api_message}\nURL: [{url}]"
+
+    logging.error(error_text)
+    if owner_id := getenv("OWNER_ID"):
+        await bot.send_message(owner_id, error_text)
+
+    await message.reply(
+        "ТікТок повернув несподівану помилку. "
+        "Інформація про цю помилку була направлена розробнику."
+    )
