@@ -4,10 +4,10 @@ from aiogram import Bot, Router
 from aiogram.filters import CommandStart
 from aiogram.types import Message
 
-start_router = Router()
+command_router = Router()
 
 
-@start_router.message(CommandStart())
+@command_router.message(CommandStart())
 async def command_start_handler(message: Message, bot: Bot) -> None:
     await message.reply("👋")
     await bot.send_chat_action(message.chat.id, "typing")
