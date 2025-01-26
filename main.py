@@ -9,7 +9,7 @@ from aiogram.enums import ParseMode
 from dotenv import load_dotenv
 from rich.logging import RichHandler
 
-from bot.handlers import error_router, message_router, start_router
+from bot.routers import command_router, error_router, message_router
 
 load_dotenv()
 
@@ -22,7 +22,10 @@ async def main() -> None:
     bot = Bot(bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
     dp = Dispatcher()
-    dp.include_routers(error_router, message_router, start_router)
+    dp.include_routers(command_router, error_router)
+
+    # this router should be the last one
+    dp.include_router(message_router)
 
     # Sometimes, "I test in production" and users send messages when the bot is down.
     # Here I need to drop all updates, so the bot doesn't have to respond to messages
