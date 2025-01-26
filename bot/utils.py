@@ -1,15 +1,16 @@
 import re
-from typing import Any, Generator
+from collections.abc import Iterator
+from typing import TypeVar
 
 from aiohttp import ClientSession
 
 TIKTOK_URL_REGEX = r"((?:www|vm|vt)\.tiktok\.com)/[^\s]+"
 
+T = TypeVar("T")
 
-def split_list(arr: list[Any], chunk_size: int) -> Generator[list[Any], Any, None]:
-    """
-    Splits the list into chunks
-    """
+
+def split_list(arr: list[T], chunk_size: int) -> Iterator[list[T]]:
+    """Split the list into chunks."""
     for i in range(0, len(arr), chunk_size):
         yield arr[i : i + chunk_size]
 

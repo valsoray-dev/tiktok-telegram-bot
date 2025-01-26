@@ -1,19 +1,19 @@
 import logging
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import ParamSpec, TypeVar
 
-T = TypeVar("T")
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
-def catch_key_error(func: Callable[..., T]) -> Callable[..., T | None]:
-    """
-    Wrapper for functions that use many dictionary indexing
-    """
+def catch_key_error(func: Callable[P, R]) -> Callable[P, R | None]:
+    """Wrap functions that use many dictionary indexing."""
 
-    def wrapper(*args: Any, **kwargs: Any) -> T | None:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R | None:
         try:
             return func(*args, **kwargs)
         except KeyError as err:
-            logging.error('(%s) Key "%s" not found.', func.__name__, err.args[0])
+            logging.exception('Key "%s" not found.', err.args[0])
             return None
 
     return wrapper

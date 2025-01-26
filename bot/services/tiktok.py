@@ -53,7 +53,8 @@ async def get_data(aweme_id: int) -> ApiResponse:
 
             json: dict[str, Any] = await response.json(loads=orjson.loads)
             if not json:
-                # TODO: if INSTALL_ID and/or DEVICE_ID are incorrect, here will be infinity loop
+                # Note: if INSTALL_ID and/or DEVICE_ID are incorrect, here will be infinity loop
+                # TODO: add something like limits on recursion
                 logging.warning("[TikTok] Response body is empty, trying again.")
                 return await get_data(aweme_id)
 
@@ -76,13 +77,14 @@ async def get_data(aweme_id: int) -> ApiResponse:
 def extract_video_url(data: dict[str, Any]) -> str | None:
     video_url: str | None = None
 
+    # find the video with h265 codec (better quality, less size)
     for item in data["video"]["bit_rate"]:
         # if the video is not encoded with proprietary bvc2 codec
         if "is_bytevc1" in item and item["is_bytevc1"] != 2:
             video_url = item["play_addr"]["url_list"][0]
             break
 
-    # if no video was found according to the above criteria
+    # if not found the video with h265 codec
     # it's not likely to happen, but just in case
     if not video_url:
         video_url = data["video"]["play_addr"]["url_list"][0]
@@ -104,7 +106,9 @@ def extract_images(data: dict[str, Any]) -> list[str] | None:
         return None
 
     images: list[str] = [
-        item["display_image"]["url_list"][-1]  # first is .heic, second is .jpeg
+        item["display_image"]["url_list"][
+            -1  # there are two elements: first is .heic, second is .jpeg
+        ]
         for item in data["image_post_info"]["images"]
     ]
 

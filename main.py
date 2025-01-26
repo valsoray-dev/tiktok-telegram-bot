@@ -22,14 +22,14 @@ async def main() -> None:
     bot = Bot(bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
     dp = Dispatcher()
-    dp.include_routers(start_router, message_router, error_router)
+    dp.include_routers(error_router, message_router, start_router)
 
     # Sometimes, "I test in production" and users send messages when the bot is down.
     # Here I need to drop all updates, so the bot doesn't have to respond to messages
     # that were sent while the bot wasn't running.
     await bot.delete_webhook(drop_pending_updates=True)
 
-    await dp.start_polling(bot)
+    await dp.start_polling(bot)  # type: ignore
 
 
 if __name__ == "__main__":
