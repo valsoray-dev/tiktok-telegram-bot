@@ -1,44 +1,25 @@
-import re
-from collections.abc import Iterator
-from typing import TypeVar
-
-from aiohttp import ClientSession
-
-TIKTOK_URL_REGEX = r"((?:www|vm|vt)\.tiktok\.com)/[^\s]+"
+import logging
+from collections.abc import Callable
+from typing import ParamSpec, TypeVar
 
 T = TypeVar("T")
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
-def split_list(arr: list[T], chunk_size: int) -> Iterator[list[T]]:
+def catch_key_error(func: Callable[P, R]) -> Callable[P, R]:
+    """Wrap functions that use many dictionary indexing."""
+
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        try:
+            return func(*args, **kwargs)
+        except KeyError as err:
+            logging.error('Key "%s" not found.', err.args[0])
+            raise err
+
+    return wrapper
+
+
+def split_list(arr: list[T], chunk_size: int) -> list[list[T]]:
     """Split the list into chunks."""
-    for i in range(0, len(arr), chunk_size):
-        yield arr[i : i + chunk_size]
-
-
-def get_aweme_id(url: str) -> int | None:
-    if match := re.search(r"(?:video|photo|v)/(\d{19})", url):
-        return int(match.group(1))
-    return None
-
-
-async def find_tiktok_url(text: str) -> str | None:
-    match: re.Match[str] | None = re.search(
-        r"((?:www|vm|vt)\.tiktok\.com)/[^\s]+", text
-    )
-    if not match:
-        return None
-
-    url: str = "https://" + match.group()
-    domain: str = match.group(1)
-    match domain:
-        # TikTok Web
-        case "www.tiktok.com":
-            return url
-
-        # Mobile App
-        case "vm.tiktok.com" | "vt.tiktok.com":
-            async with ClientSession() as session:
-                async with session.options(url, allow_redirects=False) as request:
-                    return request.headers["Location"]
-        case _:
-            return None
+    return [arr[i : i + chunk_size] for i in range(0, len(arr), chunk_size)]

@@ -13,3 +13,9 @@ dependencies = [
     "python-dotenv~=1.0",
     "rich~=13.9",
 ]
+
+[tool.black]
+line-length = 100
+
+[tool.ruff]
+line-length = 100

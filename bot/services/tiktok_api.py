@@ -6,8 +6,8 @@ import orjson
 from aiohttp import ClientSession
 from dotenv import load_dotenv
 
+from ..utils import catch_key_error
 from .models import ApiResponse, Data
-from .utils import catch_key_error
 
 load_dotenv()
 INSTALL_ID = getenv("INSTALL_ID")
@@ -38,6 +38,11 @@ HEADERS: dict[str, str] = {
     "X-Argus": "",  # It just has to be there. There are no checks on the server
 }
 
+errors: dict[str, str] = {
+    "Video has been removed": "video_deleted",
+    "Server is currently unavailable. Please try again later.": "server_unavailable",
+}
+
 
 async def get_data(aweme_id: int) -> ApiResponse:
     async with ClientSession() as session:
@@ -46,9 +51,7 @@ async def get_data(aweme_id: int) -> ApiResponse:
         ) as response:
             # it happens from time to time
             if response.status == 504:
-                logging.warning(
-                    "[TikTok] API responded with HTTP status 504, trying again."
-                )
+                logging.warning("[TikTok] API responded with HTTP status 504, trying again.")
                 return await get_data(aweme_id)
 
             json: dict[str, Any] = await response.json(loads=orjson.loads)
@@ -59,7 +62,9 @@ async def get_data(aweme_id: int) -> ApiResponse:
                 return await get_data(aweme_id)
 
             if json.get("status_code") != 0:
-                return ApiResponse(success=False, message=json.get("status_msg"))
+                # prey to god that `status_msg` is not None or whole thing gonna blow up
+                message: str = json["status_msg"]
+                return ApiResponse(success=False, message=errors.get(message, message))
 
             # can only access if `status_code` present and it's not None
             # so it's safe (i think so)
