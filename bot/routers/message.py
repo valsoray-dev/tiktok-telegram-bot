@@ -47,8 +47,10 @@ async def url_handler(message: Message, bot: Bot):
     response: ApiResponse = await tiktok_web.get_data(aweme_id)
     if not response.success:
         match response.message:
-            case "video_deleted":
-                return await message.reply("Це відео було видалено з ТікТоку.")
+            case "video_unavailable":
+                return await message.reply("Я не можу отримати інформацію про це відео.")
+            case "accout_private":
+                return await message.reply("Це відео належить приватному аккаунту.")
             case "service_unavailable":
                 return await message.reply(
                     "У цей момент сервера ТікТоку не доступні. "

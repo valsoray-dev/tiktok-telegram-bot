@@ -9,7 +9,8 @@ from .models import ApiResponse, Data
 URL = "https://www.tiktok.com/@i/video/"
 
 errors: dict[str, str] = {
-    "item doesn't exist": "video_deleted",
+    "item doesn't exist": "video_unavailable",
+    "author_secret": "accout_private",
 }
 
 

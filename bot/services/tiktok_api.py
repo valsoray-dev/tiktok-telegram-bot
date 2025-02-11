@@ -39,7 +39,7 @@ HEADERS: dict[str, str] = {
 }
 
 errors: dict[str, str] = {
-    "Video has been removed": "video_deleted",
+    "Video has been removed": "video_unavailable",
     "Server is currently unavailable. Please try again later.": "server_unavailable",
 }
 
