@@ -7,6 +7,7 @@ class Data:
     video_url: str | None
     music_url: str | None
     images: list[str] | None
+    is_age_restricted: bool | None = None
     headers: dict[str, Any] | None = None
 
 

@@ -1,17 +1,12 @@
 import logging
-from os import getenv
 from typing import Any
 
 import orjson
 from aiohttp import ClientSession
-from dotenv import load_dotenv
 
+from ..config import DEVICE_ID, INSTALL_ID
 from ..utils import catch_key_error
 from .models import ApiResponse, Data
-
-load_dotenv()
-INSTALL_ID = getenv("INSTALL_ID")
-DEVICE_ID = getenv("DEVICE_ID")
 
 if not INSTALL_ID or not DEVICE_ID:
     raise ValueError("INSTALL_ID and DEVICE_ID should be in .env")
@@ -51,14 +46,14 @@ async def get_data(aweme_id: int) -> ApiResponse:
         ) as response:
             # it happens from time to time
             if response.status == 504:
-                logging.warning("[TikTok] API responded with HTTP status 504, trying again.")
+                logging.warning("[TikTok API] API responded with HTTP status 504, trying again.")
                 return await get_data(aweme_id)
 
             json: dict[str, Any] = await response.json(loads=orjson.loads)
             if not json:
                 # Note: if INSTALL_ID and/or DEVICE_ID are incorrect, here will be infinity loop
                 # TODO: add something like limits on recursion
-                logging.warning("[TikTok] Response body is empty, trying again.")
+                logging.warning("[TikTok API] Response body is empty, trying again.")
                 return await get_data(aweme_id)
 
             if json.get("status_code") != 0:

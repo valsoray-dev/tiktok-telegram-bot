@@ -7,10 +7,10 @@ readme = "README.md"
 license = { text = "AGPL-3.0-or-later" }
 requires-python = ">=3.10"
 dependencies = [
-    "aiogram[fast]~=3.17",
+    "aiogram[fast]~=3.19",
     "aiohttp[speedups]~=3.11",
     "orjson~=3.10",
-    "python-dotenv~=1.0",
+    "python-dotenv~=1.1",
     "rich~=13.9",
 ]
 

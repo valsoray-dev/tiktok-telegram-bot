@@ -1,25 +1,18 @@
 import asyncio
 import logging
 from contextlib import suppress
-from os import getenv
 
 from aiogram import Bot, Dispatcher, loggers
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from dotenv import load_dotenv
 from rich.logging import RichHandler
 
+from bot.config import BOT_TOKEN
 from bot.routers import command_router, error_router, message_router
-
-load_dotenv()
 
 
 async def main() -> None:
-    bot_token = getenv("BOT_TOKEN")
-    if not bot_token:
-        raise ValueError("BOT_TOKEN should be in .env")
-
-    bot = Bot(bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    bot = Bot(BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
     dp = Dispatcher()
     dp.include_routers(command_router, error_router)

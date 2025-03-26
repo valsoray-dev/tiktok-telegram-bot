@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 import orjson
@@ -10,7 +11,8 @@ URL = "https://www.tiktok.com/@i/video/"
 
 errors: dict[str, str] = {
     "item doesn't exist": "video_unavailable",
-    "author_secret": "accout_private",
+    "author_secret": "account_private",
+    "item is storypost": "item_is_storypost",
 }
 
 
@@ -18,11 +20,17 @@ async def get_data(aweme_id: int) -> ApiResponse:
     async with ClientSession() as session:
         async with session.get(URL + str(aweme_id)) as response:
             body = await response.text()
-            json_str = body.split(
-                '<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application/json">'
-            )[1].split("</script>")[0]
-            json: dict[str, Any] = orjson.loads(json_str)
 
+            try:
+                json_str = body.split(
+                    '<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__" type="application/json">'
+                )[1].split("</script>")[0]
+            except IndexError:
+                # i think it should work
+                logging.warning("[TikTok Web] Needed HTML tag not found, trying again.")
+                return await get_data(aweme_id)
+
+            json: dict[str, Any] = orjson.loads(json_str)
             video_detail: dict[str, Any] = json["__DEFAULT_SCOPE__"]["webapp.video-detail"]
             if video_detail.get("statusCode") != 0:
                 message: str = video_detail["statusMsg"]
@@ -35,6 +43,7 @@ async def get_data(aweme_id: int) -> ApiResponse:
                 video_url=extract_video_url(data_json),
                 music_url=extract_music_url(data_json),
                 images=extract_images(data_json),
+                is_age_restricted=data_json.get("isContentClassified", False),
                 headers={"cookie": cookies},
             )
 
