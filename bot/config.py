@@ -21,5 +21,5 @@ OWNER_ID: Final[str] = getenv("OWNER_ID", "")
 # Constants
 TIKWM_PLAY_URL: Final[str] = "https://www.tikwm.com/video/media/play/{}.mp4"
 TIKWM_HD_URL: Final[str] = "https://www.tikwm.com/video/media/hdplay/{}.mp4"
-TIKTOK_URL_PATTERN: Final[re.Pattern] = re.compile(r"((?:www|vm|vt)\.tiktok\.com)/[^\s]+")
-AWEME_ID_PATTERN: Final[re.Pattern] = re.compile(r"(?:video|photo|v)/(\d{19})")
+TIKTOK_URL_PATTERN: Final[re.Pattern[str]] = re.compile(r"((?:www|vm|vt)\.tiktok\.com)/[^\s]+")
+AWEME_ID_PATTERN: Final[re.Pattern[str]] = re.compile(r"(?:video|photo|v)/(\d{19})")

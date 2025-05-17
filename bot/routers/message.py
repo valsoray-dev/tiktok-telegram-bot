@@ -13,8 +13,14 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.utils.media_group import MediaGroupBuilder
 from aiohttp import ClientSession
 
-from ..config import AWEME_ID_PATTERN, OWNER_ID, TIKTOK_URL_PATTERN, TIKWM_HD_URL, TIKWM_PLAY_URL
-from ..services import tiktok_api, tiktok_web
+from ..config import (
+    AWEME_ID_PATTERN,
+    OWNER_ID,
+    TIKTOK_URL_PATTERN,
+    TIKWM_HD_URL,
+    TIKWM_PLAY_URL,
+)
+from ..services import tiktok_web
 from ..services.models import ApiResponse, Data
 from ..utils import split_list
 
@@ -39,15 +45,19 @@ async def url_handler(message: Message, bot: Bot):
 
     response: ApiResponse = await tiktok_web.get_data(aweme_id)
     if not response.success:
-        return await handle_tiktok_error(bot, message, url, response.message)
+        if response.message == "cross_border_violation":
+            response.success = True
+            response.data = Data(
+                video_url=TIKWM_PLAY_URL.format(aweme_id), music_url=None, images=None
+            )
+        else:
+            return await handle_tiktok_error(bot, message, url, response.message)
 
     assert response.data is not None
 
     if response.data.is_age_restricted:
-        response: ApiResponse = await tiktok_api.get_data(aweme_id)
-        if not response.success:
-            return await handle_tiktok_error(bot, message, url, response.message)
-        assert response.data is not None
+        # return await message.reply("Це відео обмежено за віком.")
+        response.data.video_url = TIKWM_PLAY_URL.format(aweme_id)
 
     if response.data.images:
         await handle_image_post(bot, message, response.data)
@@ -79,7 +89,8 @@ async def resolve_tiktok_url(text: str) -> str | None:
             async with ClientSession() as session:
                 async with session.options(url, allow_redirects=False) as request:
                     return request.headers["Location"]
-    return None
+        case _:
+            return None
 
 
 async def handle_image_post(bot: Bot, message: Message, data: Data) -> None:
@@ -96,18 +107,11 @@ async def handle_image_post(bot: Bot, message: Message, data: Data) -> None:
 
 async def handle_video_post(bot: Bot, message: Message, data: Data, aweme_id: int) -> None:
     assert data.video_url is not None
-    assert data.music_url is not None
-
     video_url = data.video_url
-    music_url = data.music_url
-    is_private = message.chat.type == "private"
 
     try:
         async with ChatActionSender.upload_video(message.chat.id, bot, message.message_thread_id):
-            await message.reply_video(
-                URLInputFile(video_url, headers=data.headers),
-                reply_markup=assemble_inline_keyboard(aweme_id, music_url) if is_private else None,
-            )
+            await message.reply_video(URLInputFile(video_url, headers=data.headers))
     except TelegramEntityTooLarge:
         await message.reply(
             "Це відео завелике тому Телеграм не може його завантажити.\n"
@@ -146,13 +150,20 @@ async def handle_tiktok_error(
 ) -> None:
     """Handle errors from TikTok API."""
     match api_message:
-        case "video_unavailable":
-            await message.reply("Я не можу отримати інформацію про це відео.")
+        case (
+            "video_unavailable"
+            | "status_deleted"
+            | "status_self_see"
+            | "status_reviewing"
+            | "status_audit_not_pass"
+        ):
+            await message.reply("Це відео недоступне для завантаження.")
         case "account_private":
             await message.reply("Це відео належить приватному аккаунту.")
         case "item_is_storypost":
             await message.reply(
-                "Це відео є сторійпостом. Я не можу його завантажити. Спробуйте це: https://www.tikwm.com/"
+                "Це відео є сторійпостом. Я не можу його завантажити. "
+                "Спробуйте завантажити тут: https://www.tikwm.com/"
             )
         case "server_unavailable":
             await message.reply(
@@ -173,6 +184,6 @@ async def handle_unexpected_tiktok_error(
         await bot.send_message(OWNER_ID, error_text)
 
     await message.reply(
-        "Я не можу завантажити це з ТікТоку. Скоріше за все, це не доступне для завантаження. "
+        "Я не можу завантажити це відео з ТікТоку. Скоріше за все, воно не доступне для завантаження. "
         "Спробуйте ще раз трошки пізніше."
     )
