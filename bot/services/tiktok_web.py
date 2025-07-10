@@ -15,10 +15,14 @@ errors: dict[str, str] = {
     "item is storypost": "item_is_storypost",
 }
 
+HEADERS: dict[str, Any] = {
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+}
+
 
 async def get_data(aweme_id: int) -> ApiResponse:
     async with ClientSession() as session:
-        async with session.get(URL + str(aweme_id)) as response:
+        async with session.get(URL + str(aweme_id), headers=HEADERS) as response:
             body = await response.text()
 
             try:
@@ -44,7 +48,7 @@ async def get_data(aweme_id: int) -> ApiResponse:
                 music_url=extract_music_url(data_json),
                 images=extract_images(data_json),
                 is_age_restricted=data_json.get("isContentClassified", False),
-                headers={"cookie": cookies},
+                headers=HEADERS | {"cookie": cookies, "referer": "https://www.tiktok.com/"},
             )
 
             return ApiResponse(success=True, data=data)
