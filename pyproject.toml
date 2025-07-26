@@ -2,17 +2,39 @@
 name = "tiktok-telegram-bot"
 version = "0.1.0"
 authors = [{ name = "valsoray-dev" }]
-description = "Telegram bot to download videos/photos/music from TikTok"
 readme = "README.md"
-license = { text = "AGPL-3.0-or-later" }
+license = "AGPL-3.0-or-later"
 requires-python = ">=3.10"
 dependencies = [
-    "aiogram[fast]~=3.21",
-    "aiohttp[speedups]~=3.12.0",
-    "orjson~=3.10",
-    "python-dotenv~=1.1",
-    "rich~=14.0",
+    "aiogram[fast] ~= 3.21",
+    "aiohttp[speedups] ~= 3.12.0",
+    "pydantic ~= 2.11.0",
+    "python-dotenv ~= 1.1",
+    "rich ~= 14.0",
+    "typing-extensions ~= 4.14",
 ]
 
 [tool.ruff]
 line-length = 100
+
+[tool.ruff.lint]
+# It's kinda overkill, but It's my project, so I'm doing whatever I want
+select = ["ALL"]
+preview = true
+ignore = [
+    # allow commented out code
+    "ERA",
+    # allow using `assert`s
+    "S101",
+    # allow missing copyright notice at top of file
+    "CPY",
+    # dont tell me how to write todos
+    "TD002",
+    "TD003",
+    # allow undocumented stuff
+    "D10",
+    # allow Ukrainian characters
+    "RUF001",
+    "RUF002",
+    "RUF003",
+]

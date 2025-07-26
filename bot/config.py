@@ -9,7 +9,8 @@ load_dotenv()
 # Bot settings
 BOT_TOKEN: Final[str] = getenv("BOT_TOKEN", "")
 if not BOT_TOKEN:
-    raise ValueError("BOT_TOKEN must be set in .env file")
+    msg = "BOT_TOKEN must be set in .env file"
+    raise ValueError(msg)
 
 # TikTok API settings (optional)
 INSTALL_ID: Final[str] = getenv("INSTALL_ID", "")

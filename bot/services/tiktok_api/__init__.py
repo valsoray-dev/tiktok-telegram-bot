@@ -1,15 +1,19 @@
 import logging
-from typing import Any
 
-import orjson
 from aiohttp import ClientSession
+from typing_extensions import override
 
-from ..config import DEVICE_ID, INSTALL_ID
-from ..utils import catch_key_error
-from .models import ApiResponse, Data
+from bot.config import DEVICE_ID, INSTALL_ID
+from bot.services import ApiResponse, BaseParser, Data
+from bot.services.tiktok_api.models import AwemeDetail, Root
+from bot.utils import HeaderMap
+
+logger = logging.getLogger(__name__)
+
 
 if not INSTALL_ID or not DEVICE_ID:
-    raise ValueError("INSTALL_ID and DEVICE_ID should be in .env")
+    msg = "INSTALL_ID and DEVICE_ID should be in .env"
+    raise ValueError(msg)
 
 URL = "https://api16-normal-c-useast1a.tiktokv.com/aweme/v1/multi/aweme/detail/"
 
@@ -27,89 +31,95 @@ PARAMS: dict[str, str] = {
     "os_version": "14",
 }
 
-HEADERS: dict[str, str] = {
-    "Content-Type": "application/x-www-form-urlencoded",
-    "User-Agent": "com.zhiliaoapp.musically/2023501030 (Linux; U; Android 14; en_US; Pixel 8 Pro; Build/TP1A.220624.014;tt-ok/3.12.13.4-tiktok)",
-    "X-Argus": "",  # It just has to be there. There are no checks on the server
-}
+HEADERS = HeaderMap(
+    {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "com.zhiliaoapp.musically/2023501030 (Linux; U; Android 14; en_US; Pixel 8 Pro; Build/TP1A.220624.014;tt-ok/3.12.13.4-tiktok)",  # noqa: E501
+        "X-Argus": "",  # It just has to be there. There are no checks on the server
+    },
+)
 
-errors: dict[str, str] = {
+ERRORS: dict[str, str] = {
     "Video has been removed": "video_unavailable",
     "Server is currently unavailable. Please try again later.": "server_unavailable",
 }
 
 
-async def get_data(aweme_id: int) -> ApiResponse:
-    async with ClientSession() as session:
-        async with session.post(
-            URL, data={"aweme_ids": f"[{aweme_id}]"}, params=PARAMS, headers=HEADERS
-        ) as response:
+class TikTokAPIParser(BaseParser):
+    @override
+    async def parse(self, aweme_id: int) -> ApiResponse:
+        async with (
+            ClientSession() as session,
+            session.post(
+                URL,
+                data={"aweme_ids": f"[{aweme_id}]"},
+                params=PARAMS,
+                headers=HEADERS,
+            ) as response,
+        ):
             # it happens from time to time
-            if response.status == 504:
-                logging.warning("[TikTok API] API responded with HTTP status 504, trying again.")
-                return await get_data(aweme_id)
+            if response.status == 504:  # noqa: PLR2004
+                logger.warning("[TikTok API] API responded with HTTP status 504, trying again.")
+                return await self.parse(aweme_id)
 
-            json: dict[str, Any] = await response.json(loads=orjson.loads)
-            if not json:
+            text = await response.text()
+            if not text:
                 # Note: if INSTALL_ID and/or DEVICE_ID are incorrect, here will be infinity loop
                 # TODO: add something like limits on recursion
-                logging.warning("[TikTok API] Response body is empty, trying again.")
-                return await get_data(aweme_id)
+                logger.warning("[TikTok API] Response body is empty, trying again.")
+                return await self.parse(aweme_id)
 
-            if json.get("status_code") != 0:
-                # prey to god that `status_msg` is not None or whole thing gonna blow up
-                message: str = json["status_msg"]
-                return ApiResponse(success=False, message=errors.get(message, message))
+            model = Root.model_validate_json(text)
+            if model.status_code != 0:
+                message: str = model.status_msg
+                return ApiResponse(success=False, message=ERRORS.get(message, message))
 
-            # can only access if `status_code` present and it's not None
-            # so it's safe (i think so)
-            data_json: dict[str, Any] = json["aweme_details"][0]
+            aweme_detail = model.aweme_details[0]
             data = Data(
-                video_url=extract_video_url(data_json),
-                music_url=extract_music_url(data_json),
-                images=extract_images(data_json),
+                video_url=extract_video_url(aweme_detail),
+                music_url=extract_music_url(aweme_detail),
+                images=extract_images(aweme_detail),
             )
 
             return ApiResponse(success=True, data=data)
 
 
-@catch_key_error
-def extract_video_url(data: dict[str, Any]) -> str | None:
+def extract_video_url(data: AwemeDetail) -> str | None:
     video_url: str | None = None
 
     # find the video with h265 codec (better quality, less size)
-    for item in data["video"]["bit_rate"]:
+    for item in data.video.bit_rate:
         # if the video is not encoded with proprietary bvc2 codec
-        if "is_bytevc1" in item and item["is_bytevc1"] != 2:
-            video_url = item["play_addr"]["url_list"][0]
+        if (
+            item.is_bytevc1 is not None
+            and item.is_bytevc1 != 2  # noqa: PLR2004
+            and len(item.play_addr.url_list) != 0
+        ):
+            video_url = item.play_addr.url_list[0]
             break
 
     # if not found the video with h265 codec
     # it's not likely to happen, but just in case
     if not video_url:
-        video_url = data["video"]["play_addr"]["url_list"][0]
+        video_url = data.video.play_addr.url_list[0]
 
     return video_url
 
 
-@catch_key_error
-def extract_music_url(data: dict[str, Any]) -> str | None:
-    if "music" not in data:
+def extract_music_url(data: AwemeDetail) -> str | None:
+    if data.music is None:
         return None
 
-    return data["music"]["play_url"]["uri"]
+    return data.music.play_url.uri
 
 
-@catch_key_error
-def extract_images(data: dict[str, Any]) -> list[str] | None:
-    if "image_post_info" not in data:
+def extract_images(data: AwemeDetail) -> list[str] | None:
+    if data.image_post_info is None:
         return None
 
-    images: list[str] = [
-        item["display_image"]["url_list"][
+    return [
+        item.display_image.url_list[
             -1  # there are two elements: first is .heic, second is .jpeg
         ]
-        for item in data["image_post_info"]["images"]
+        for item in data.image_post_info.images
     ]
-
-    return images
