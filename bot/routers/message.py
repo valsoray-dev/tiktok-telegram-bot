@@ -1,34 +1,30 @@
+# ruff: noqa: E501
+
 import logging
 
 from aiogram import Bot, F, Router, html
 from aiogram.exceptions import TelegramBadRequest, TelegramEntityTooLarge
 from aiogram.types import (
-    InlineKeyboardMarkup,
     InputMediaPhoto,
     Message,
     URLInputFile,
 )
 from aiogram.utils.chat_action import ChatActionSender
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.utils.media_group import MediaGroupBuilder
 from aiohttp import ClientSession
 
-from ..config import (
-    AWEME_ID_PATTERN,
-    OWNER_ID,
-    TIKTOK_URL_PATTERN,
-    TIKWM_HD_URL,
-    TIKWM_PLAY_URL,
-)
-from ..services import tiktok_web
-from ..services.models import ApiResponse, Data
-from ..utils import split_list
+from bot.config import AWEME_ID_PATTERN, OWNER_ID, TIKTOK_URL_PATTERN, TIKWM_HD_URL, TIKWM_PLAY_URL
+from bot.services import ApiResponse, Data, tiktok_web
+from bot.utils import HeaderMap, split_list_into_chunks
+
+logger = logging.getLogger(__name__)
+
 
 message_router = Router()
 
 
 @message_router.message(F.text)
-async def url_handler(message: Message, bot: Bot):
+async def url_handler(message: Message, bot: Bot) -> None:
     assert message.text is not None
 
     url = await resolve_tiktok_url(message.text)
@@ -37,18 +33,21 @@ async def url_handler(message: Message, bot: Bot):
 
     aweme_id = extract_aweme_id(url)
     if not aweme_id:
-        logging.warning("Failed to get Aweme ID.\nURL: [%s]", url)
-        return await message.reply(
+        logger.warning("Failed to get Aweme ID.\nURL: [%s]", url)
+        await message.reply(
             "За вашим посиланням нічого не знайдено. "
-            "Перевірте його правильність та спробуйте ще раз."
+            "Перевірте його правильність та спробуйте ще раз.",
         )
+        return None
 
-    response: ApiResponse = await tiktok_web.get_data(aweme_id)
+    response: ApiResponse = await tiktok_web.TikTokWebParser().parse(aweme_id)
     if not response.success:
-        if response.message == "cross_border_violation":
+        if response.message == "geo_restricted":
             response.success = True
             response.data = Data(
-                video_url=TIKWM_PLAY_URL.format(aweme_id), music_url=None, images=None
+                video_url=TIKWM_PLAY_URL.format(aweme_id),
+                music_url=None,
+                images=None,
             )
         else:
             return await handle_tiktok_error(bot, message, url, response.message)
@@ -60,10 +59,23 @@ async def url_handler(message: Message, bot: Bot):
         response.data.video_url = TIKWM_PLAY_URL.format(aweme_id)
 
     if response.data.images:
-        await handle_image_post(bot, message, response.data)
+        await handle_image_post(
+            bot,
+            message,
+            response.data.images,
+            response.data.headers,
+        )
 
     elif response.data.video_url:
-        await handle_video_post(bot, message, response.data, aweme_id)
+        await handle_video_post(
+            bot,
+            message,
+            response.data.headers,
+            response.data.video_url,
+            aweme_id,
+        )
+
+    return None
 
 
 def extract_aweme_id(url: str) -> int | None:
@@ -86,32 +98,47 @@ async def resolve_tiktok_url(text: str) -> str | None:
 
         # Mobile App
         case "vm.tiktok.com" | "vt.tiktok.com":
-            async with ClientSession() as session:
-                async with session.options(url, allow_redirects=False) as request:
-                    return request.headers["Location"]
+            async with (
+                ClientSession() as session,
+                session.options(url, allow_redirects=False) as request,
+            ):
+                return request.headers["Location"]
         case _:
             return None
 
 
-async def handle_image_post(bot: Bot, message: Message, data: Data) -> None:
-    assert data.images is not None
+async def handle_image_post(
+    bot: Bot,
+    message: Message,
+    images: list[str],
+    headers: HeaderMap | None,
+) -> None:
+    if headers is not None:
+        # don't ask why
+        headers.pop("Cookie", None)
 
-    chunks = split_list(data.images, 10)
+    chunks = split_list_into_chunks(images, 10)
     for chunk in chunks:
         async with ChatActionSender.upload_photo(message.chat.id, bot, message.message_thread_id):
             media_group = MediaGroupBuilder(
-                [InputMediaPhoto(media=URLInputFile(image)) for image in chunk]
+                [
+                    InputMediaPhoto(media=URLInputFile(image, headers.data if headers else None))
+                    for image in chunk
+                ],
             )
             await message.reply_media_group(media_group.build())
 
 
-async def handle_video_post(bot: Bot, message: Message, data: Data, aweme_id: int) -> None:
-    assert data.video_url is not None
-    video_url = data.video_url
-
+async def handle_video_post(
+    bot: Bot,
+    message: Message,
+    headers: HeaderMap | None,
+    video_url: str,
+    aweme_id: int,
+) -> None:
     try:
         async with ChatActionSender.upload_video(message.chat.id, bot, message.message_thread_id):
-            await message.reply_video(URLInputFile(video_url, headers=data.headers))
+            await message.reply_video(URLInputFile(video_url, headers.data if headers else None))
     except TelegramEntityTooLarge:
         await message.reply(
             "Це відео завелике тому Телеграм не може його завантажити.\n"
@@ -124,29 +151,19 @@ async def handle_video_post(bot: Bot, message: Message, data: Data, aweme_id: in
             # or something else, i don't know
             case "Bad Request: failed to get HTTP URL content":
                 await message.reply(
-                    "Це відео завелике (або щось пішло не так) "
-                    "тому Телеграм не може його завантажити.\n"
+                    "Це відео завелике (або щось пішло не так) тому Телеграм не може його завантажити.\n"
                     f"Ось пряме посилання на це відео: {html.link('CLICK ME', TIKWM_PLAY_URL.format(aweme_id))}\n"
                     f"Або ось пряме посилання на HD версію: {html.link('CLICK ME', TIKWM_HD_URL.format(aweme_id))}",
                 )
             case _:
-                raise exception
-
-
-def assemble_inline_keyboard(aweme_id: int, music_url: str | None) -> InlineKeyboardMarkup:
-    """Create an inline keyboard with Music and HD buttons."""
-    builder = InlineKeyboardBuilder()
-
-    if music_url:
-        builder.button(text="Music", url=music_url)
-
-    builder.button(text="HD", url=TIKWM_HD_URL.format(aweme_id))
-
-    return builder.as_markup()
+                raise
 
 
 async def handle_tiktok_error(
-    bot: Bot, message: Message, url: str, api_message: str | None
+    bot: Bot,
+    message: Message,
+    url: str,
+    api_message: str | None,
 ) -> None:
     """Handle errors from TikTok API."""
     match api_message:
@@ -163,27 +180,33 @@ async def handle_tiktok_error(
         case "item_is_storypost":
             await message.reply(
                 "Це відео є сторійпостом. Я не можу його завантажити. "
-                "Спробуйте завантажити тут: https://www.tikwm.com/"
+                "Спробуйте завантажити тут: https://www.tikwm.com/",
             )
         case "server_unavailable":
             await message.reply(
-                "У цей момент сервера ТікТоку не доступні. Спробуйте ще раз через декілька секунд."
+                "У цей момент сервера ТікТоку не доступні. Спробуйте ще раз через декілька секунд.",
             )
         case _:
             return await handle_unexpected_tiktok_error(bot, message, url, api_message)
 
+    return None
+
 
 async def handle_unexpected_tiktok_error(
-    bot: Bot, message: Message, url: str, api_message: str | None
+    bot: Bot,
+    message: Message,
+    url: str,
+    api_message: str | None,
 ) -> None:
     """Handle unexpected errors from TikTok API."""
     error_text = f"Unexpected error from API: `{api_message}`\nURL: [{url}]"
-    logging.error(error_text)
+    logger.error(error_text)
 
     if OWNER_ID:
         await bot.send_message(OWNER_ID, error_text)
 
     await message.reply(
-        "Я не можу завантажити це відео з ТікТоку. Скоріше за все, воно не доступне для завантаження. "
-        "Спробуйте ще раз трошки пізніше."
+        "Я не можу завантажити це відео з ТікТоку. "
+        "Скоріше за все, воно не доступне для завантаження. "
+        "Спробуйте ще раз трошки пізніше.",
     )

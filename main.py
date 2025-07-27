@@ -25,16 +25,17 @@ async def main() -> None:
     # that were sent while the bot wasn't running.
     await bot.delete_webhook(drop_pending_updates=True)
 
-    await dp.start_polling(bot)  # type: ignore
+    await dp.start_polling(bot)  # pyright: ignore [reportUnknownMemberType]
 
 
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
         format="%(message)s",
+        datefmt="[%d/%m/%y %H:%M:%S]",
         handlers=[
             # This bot is far from the most stable, so I need cool tracebacks
-            RichHandler(rich_tracebacks=True, log_time_format="[%d/%m/%y %H:%M:%S]")
+            RichHandler(rich_tracebacks=True),
         ],
     )
 
