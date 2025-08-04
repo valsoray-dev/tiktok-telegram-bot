@@ -47,7 +47,7 @@ class TikTokWebParser(BaseParser):
 
             model = Root.model_validate_json(json_str)
             video_detail = model.default_scope.webapp_video_detail
-            if video_detail.statusCode != 0:
+            if video_detail.statusCode != 0 or video_detail.itemInfo is None:
                 message = video_detail.statusMsg
                 return ApiResponse(success=False, message=ERRORS.get(message, message))
 

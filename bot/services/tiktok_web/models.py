@@ -44,7 +44,7 @@ class ItemInfo(BaseModel):
 
 
 class WebappVideoDetail(BaseModel):
-    itemInfo: ItemInfo
+    itemInfo: ItemInfo | None = None
     statusCode: int
     statusMsg: str
 
